@@ -12,7 +12,7 @@ REM This script requires Splunk >= 7.1 - older versions might work with a non-ha
 REM Set all script parameters here
 REM The UF .msi file and the Root CA and forwarder certificate have to be properly formatted in the same directory as the script
 
-SET MSIFILE=splunkforwarder-7.1.4-5a7a840afcb3-x64-release.msi
+SET MSIFILE=splunkforwarder-7.1.6-8f009a3f5353-x64-release.msi
 SET INSTALL_DIR=C:\Program Files\SplunkUniversalForwarder
 
 REM Username for admin user
@@ -23,7 +23,7 @@ SET HASHED_PASSWORD=$6$QY84KTvRuuPNLx/i$Sf74KiBz/bPFfR49ONg2qOfT9GbYgsFm8dwmScuO
 REM Name for app containing deployment client config. App with exact same name can be distributed via the DS to overwrite this config later
 SET DS_APPNAME=org_all_dc_deployment-client
 REM IP and port for deploymentserver, e.g. 10.0.0.1:8089
-SET DEPLOYMENTSERVER=mydeploymentserver
+SET DEPLOYMENTSERVER=10.0.0.1:8089
 
 REM All TLS config (certificates, pass4symmkey, copying Root CA and cert file...) will only be applied if this is set to true (case sensitive!)
 SET CREATE_TLS_SETTINGS=true
@@ -37,6 +37,11 @@ REM Filename for Root CA file to be copied. Has to be in the same folder as this
 SET ROOT_CA_CERT_LOCAL_FILE=splunk_root.pem
 REM Filename for forwarder certificate file to be copied. Has to be in the same folder as this script. Must contain forwarder certificate, forwarder private key, and possible intermediate certificates, all in PEM format
 SET SERVER_CERT_KEY_CHAIN_LOCAL_FILE=splunk_cert_key_chain.pem
+
+REM Only deploy custom splunk.secret file if set to true (case sensitive!)
+SET CREATE_SPLUNK_SECRET=true
+REM Deploy custom splunk.secret file to allow shared encrypted passwords etc.
+SET SPLUNK_SECRET=zJOfhWlCfpJ1exsfVyBsAdv2LUbz95RcI91xRJ/mjWfsNkO2LY.M6d4O.y4Mny.FjdQ6ud.sL1jZ7Gv9KlSFuugAmG89REFBECsT6n.o8VtN2HSxgs9/Ef1e/MUff1BpdFTQ5OmV0UzVRh/fm5u8WKWiabcAnioKfnyoo.yCqexZdY4GmMOiUbtT.XA78RTZxpTthRgzn/v3QsRI.y7zYYtcqwxor7kjyRn9oenJUFGF2vhOlurdB25320hv5x
 
 
 REM This detects if the script is being run with admin privileges
@@ -154,7 +159,7 @@ IF %ERRORLEVEL% EQU 0 (
 
 REM Only do the next steps if CREATE_TLS_SETTINGS is set to true
 
-IF "%CREATE_TLS_SETTINGS%" = "true" (
+IF "%CREATE_TLS_SETTINGS%" == "true" (
 
   REM Creates server.conf and fills in the certificate paths, DS Certificate CN and DS Pass4SymmKey
 
@@ -191,6 +196,26 @@ IF "%CREATE_TLS_SETTINGS%" = "true" (
     PAUSE
     EXIT /B 1
   )
+
+)
+
+REM Only do the next steps if CREATE_SPLUNK_SECRET is set to true
+
+IF "%CREATE_SPLUNK_SECRET%" == "true" (
+
+  (
+    ECHO %SPLUNK_SECRET%
+  ) > "%INSTALL_DIR%\etc\auth\splunk.secret"
+
+  IF %ERRORLEVEL% EQU 0 (
+    ECHO Created file %INSTALL_DIR%\etc\auth\splunk.secret successfully
+  ) ELSE (
+    ECHO FAILED to create directory %INSTALL_DIR%\etc\auth\splunk.secret
+    ECHO Exiting now, check permissions.
+    PAUSE
+    EXIT /B 1
+  )
+
 )
 
 REM This starts the Splunk UF service
