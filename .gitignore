@@ -1,0 +1,11 @@
+﻿# All the keyfiles should never go somewhere ;)
+*.pem
+*.key
+*.cert
+*.p12
+
+# Never put the binary into git. There is pain
+*.msi
+
+# Don't add possible install logfile to repo
+logfile.txt
