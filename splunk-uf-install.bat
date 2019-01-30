@@ -170,7 +170,7 @@ IF "%CREATE_TLS_SETTINGS%" == "true" (
     ECHO sslRootCAPathHonoredOnWindows = true
     ECHO sslVerifyServerCert = true
     ECHO sslCommonNameToCheck = %DEPLOYMENTSERVER_CERT_COMMON_NAME%
-    ECHO 
+    ECHO(
     ECHO [deployment]
     ECHO pass4SymmKey = %DEPLOYMENTSERVER_PASS4SYMMKEY%
   ) > "%INSTALL_DIR%\etc\apps\%TLS_APPNAME%\default\server.conf"
