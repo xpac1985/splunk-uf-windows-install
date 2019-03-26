@@ -8,31 +8,35 @@ REM All configs are saved to seperate apps so they can be managed using the depl
 REM This script has to be run with admin privileges
 REM This script requires Splunk >= 7.1 - older versions might work with a non-hashed password in user-seed.conf
 
-
+REM ##############################
 REM Set all script parameters here
+REM ##############################
 REM The UF .msi file and the Root CA and forwarder certificate have to be properly formatted in the same directory as the script
 
-SET MSIFILE=splunkforwarder-7.1.6-8f009a3f5353-x64-release.msi
+SET MSIFILE=###FILENAME OF SPLUNK UF MSI###
+REM Install dir, defaults to C:\Program Files\SplunkUniversalForwarder
 SET INSTALL_DIR=C:\Program Files\SplunkUniversalForwarder
 
 REM Username for admin user
 SET USERNAME=admin
-REM Hashed password for admin user. Can be copied from etc/passwd on an existing Splunk instance. The splunk.secret file does NOT matter for this
-SET HASHED_PASSWORD=$6$QY84KTvRuuPNLx/i$Sf74KiBz/bPFfR49ONg2qOfT9GbYgsFm8dwmScuOqxqFs4Rvrhpx0eBQoGqExmW/XSycu0dVC3y6gYkRg0PjR1
+REM Hashed password for admin user. Can be copied from etc/passwd on an existing Splunk instance. The splunk.secret file does NOT matter for this. Requires Splunk >= 7.1
+SET HASHED_PASSWORD=###HASHED ADMIN PASSWORD###
 
 REM Name for app containing deployment client config. App with exact same name can be distributed via the DS to overwrite this config later
-SET DS_APPNAME=org_all_dc_deployment-client
-REM IP and port for deploymentserver, e.g. 10.0.0.1:8089
-SET DEPLOYMENTSERVER=10.0.0.1:8089
+SET DS_APPNAME=org_zone_dc_deploymentclient
+REM FQDN/hostname/IP and port for deploymentserver, e.g. 10.0.0.1:8089
+SET DEPLOYMENTSERVER=###DEPLOYMENT SERVER FQDN###:8089
 
 REM All TLS config (certificates, pass4symmkey, copying Root CA and cert file...) will only be applied if this is set to true (case sensitive!)
 SET CREATE_TLS_SETTINGS=true
 REM Name for app containing TLS/pass4symmkey config. App with exact same name can be distributed via the DS to overwrite this config later
-SET TLS_APPNAME=org_all_dc_server-conf-for-tls
+SET TLS_APPNAME=org_zone_dc-windows_tls-base
 REM Common name in the certificate used by the deployment server
-SET DEPLOYMENTSERVER_CERT_COMMON_NAME=mydeploymentserver
+SET DEPLOYMENTSERVER_CERT_COMMON_NAME=###CN OF DEPLOYMENT SERVER CERTIFICATE###
 REM pass4symmkey used by DS and DC to verify each other. Can be set in server.conf -> [deployment] on DS
-SET DEPLOYMENTSERVER_PASS4SYMMKEY=mypass4symmkey
+SET DEPLOYMENTSERVER_PASS4SYMMKEY=###ENCRYPTED PASS4SYMMKEY FOR DEPLOYMENT SERVER AUTHORIZATION###
+REM Folder to create in $SPLUNK_HOME\etc\auth to deploy certificates and key in
+SET CERT_FOLDER=###CERT FOLDER NAME###
 REM Filename for Root CA file to be copied. Has to be in the same folder as this script. Must contain one or more PEM certificates
 SET ROOT_CA_CERT_LOCAL_FILE=splunk_root.pem
 REM Filename for forwarder certificate file to be copied. Has to be in the same folder as this script. Must contain forwarder certificate, forwarder private key, and possible intermediate certificates, all in PEM format
@@ -41,7 +45,7 @@ SET SERVER_CERT_KEY_CHAIN_LOCAL_FILE=splunk_cert_key_chain.pem
 REM Only deploy custom splunk.secret file if set to true (case sensitive!)
 SET CREATE_SPLUNK_SECRET=true
 REM Deploy custom splunk.secret file to allow shared encrypted passwords etc.
-SET SPLUNK_SECRET=zJOfhWlCfpJ1exsfVyBsAdv2LUbz95RcI91xRJ/mjWfsNkO2LY.M6d4O.y4Mny.FjdQ6ud.sL1jZ7Gv9KlSFuugAmG89REFBECsT6n.o8VtN2HSxgs9/Ef1e/MUff1BpdFTQ5OmV0UzVRh/fm5u8WKWiabcAnioKfnyoo.yCqexZdY4GmMOiUbtT.XA78RTZxpTthRgzn/v3QsRI.y7zYYtcqwxor7kjyRn9oenJUFGF2vhOlurdB25320hv5x
+SET SPLUNK_SECRET=###SPLUNK SECRET###
 
 
 REM This detects if the script is being run with admin privileges
@@ -143,15 +147,17 @@ IF %ERRORLEVEL% EQU 0 (
   EXIT /B 1
 )
 
-REM Creates directory for the TLS config
-REM Name is defined at top of script - the same name has be used on the Deployment Server to replace/manage this app and its settings
+REM Creates server.conf and fills in the pass4SymmKey used to authenticate against the deployment server
 
-mkdir "%INSTALL_DIR%\etc\apps\%TLS_APPNAME%\default"
+(
+  ECHO [deployment]
+  ECHO pass4SymmKey = %DEPLOYMENTSERVER_PASS4SYMMKEY%
+) > "%INSTALL_DIR%\etc\apps\%DS_APPNAME%\default\server.conf"
 
 IF %ERRORLEVEL% EQU 0 (
-  ECHO Created directory %INSTALL_DIR%\etc\apps\%TLS_APPNAME%\default successfully
+  ECHO Created file %INSTALL_DIR%\etc\apps\%DS_APPNAME%\default\server.conf successfully
 ) ELSE (
-  ECHO FAILED to create directory %INSTALL_DIR%\etc\apps\%TLS_APPNAME%\default
+  ECHO FAILED to create directory %INSTALL_DIR%\etc\apps\%DS_APPNAME%\default\server.conf
   ECHO Exiting now, check permissions.
   PAUSE
   EXIT /B 1
@@ -161,18 +167,29 @@ REM Only do the next steps if CREATE_TLS_SETTINGS is set to true
 
 IF "%CREATE_TLS_SETTINGS%" == "true" (
 
+  REM Creates directory for the TLS config
+  REM Name is defined at top of script - the same name has be used on the Deployment Server to replace/manage this app and its settings
+
+  mkdir "%INSTALL_DIR%\etc\apps\%TLS_APPNAME%\default"
+
+  IF %ERRORLEVEL% EQU 0 (
+    ECHO Created directory %INSTALL_DIR%\etc\apps\%TLS_APPNAME%\default successfully
+  ) ELSE (
+    ECHO FAILED to create directory %INSTALL_DIR%\etc\apps\%TLS_APPNAME%\default
+    ECHO Exiting now, check permissions.
+    PAUSE
+    EXIT /B 1
+  )
+
   REM Creates server.conf and fills in the certificate paths, DS Certificate CN and DS Pass4SymmKey
 
   (
     ECHO [sslConfig]
-    ECHO sslRootCAPath = $SPLUNK_HOME\etc\auth\%ROOT_CA_CERT_LOCAL_FILE%
-    ECHO serverCert = $SPLUNK_HOME\etc\auth\%SERVER_CERT_KEY_CHAIN_LOCAL_FILE%
+    ECHO sslRootCAPath = $SPLUNK_HOME\etc\auth\%CERT_FOLDER%\%ROOT_CA_CERT_LOCAL_FILE%
+    ECHO serverCert = $SPLUNK_HOME\etc\auth\%CERT_FOLDER%\%SERVER_CERT_KEY_CHAIN_LOCAL_FILE%
     ECHO sslRootCAPathHonoredOnWindows = true
     ECHO sslVerifyServerCert = true
     ECHO sslCommonNameToCheck = %DEPLOYMENTSERVER_CERT_COMMON_NAME%
-    ECHO(
-    ECHO [deployment]
-    ECHO pass4SymmKey = %DEPLOYMENTSERVER_PASS4SYMMKEY%
   ) > "%INSTALL_DIR%\etc\apps\%TLS_APPNAME%\default\server.conf"
 
   IF %ERRORLEVEL% EQU 0 (
@@ -184,14 +201,27 @@ IF "%CREATE_TLS_SETTINGS%" == "true" (
     EXIT /B 1
   )
 
-  REM This copies the Root CA Cert(s) file and the Server Cert+Key+Chain file to the right location
+  REM Creates folder to put certificate files and private key into
 
-  copy %ROOT_CA_CERT_LOCAL_FILE% "%INSTALL_DIR%\etc\auth\%ROOT_CA_CERT_LOCAL_FILE%" && copy %SERVER_CERT_KEY_CHAIN_LOCAL_FILE% "%INSTALL_DIR%\etc\auth\%SERVER_CERT_KEY_CHAIN_LOCAL_FILE%"
+  mkdir "%INSTALL_DIR%\etc\auth\%CERT_FOLDER%"
 
   IF %ERRORLEVEL% EQU 0 (
-    ECHO Copied %ROOT_CA_CERT_LOCAL_FILE% and %SERVER_CERT_KEY_CHAIN_LOCAL_FILE% to %INSTALL_DIR%\etc\auth successfully
+    ECHO Created directory %INSTALL_DIR%\etc\auth\%CERT_FOLDER% successfully
   ) ELSE (
-    ECHO FAILED to copy certificale files to directory %INSTALL_DIR%\etc\auth
+    ECHO FAILED to create directory %INSTALL_DIR%\etc\auth\%CERT_FOLDER%
+    ECHO Exiting now, check permissions.
+    PAUSE
+    EXIT /B 1
+  )
+
+  REM This copies the Root CA Cert(s) file and the Server Cert+Key+Chain file to the right location
+
+  copy %ROOT_CA_CERT_LOCAL_FILE% "%INSTALL_DIR%\etc\auth\%CERT_FOLDER%\%ROOT_CA_CERT_LOCAL_FILE%" && copy %SERVER_CERT_KEY_CHAIN_LOCAL_FILE% "%INSTALL_DIR%\etc\auth\%CERT_FOLDER%\%SERVER_CERT_KEY_CHAIN_LOCAL_FILE%"
+
+  IF %ERRORLEVEL% EQU 0 (
+    ECHO Copied %ROOT_CA_CERT_LOCAL_FILE% and %SERVER_CERT_KEY_CHAIN_LOCAL_FILE% to %INSTALL_DIR%\etc\auth\%CERT_FOLDER% successfully
+  ) ELSE (
+    ECHO FAILED to copy certificale files to directory %INSTALL_DIR%\etc\auth\%CERT_FOLDER%
     ECHO Exiting now, check permissions.
     PAUSE
     EXIT /B 1
@@ -202,6 +232,13 @@ IF "%CREATE_TLS_SETTINGS%" == "true" (
 REM Only do the next steps if CREATE_SPLUNK_SECRET is set to true
 
 IF "%CREATE_SPLUNK_SECRET%" == "true" (
+
+  REM The msiexec encrypts sslPassword to local\server.conf with a random splunk.secret before the first start.
+  REM When we replace the splunk.secret content with ours, Splunk will error on start because it can't decrypt the sslPassword
+  REM Therefore, we are going to filter this line out.
+
+  ECHO Removing useless encrypted sslPassword in etc\system\local\server.conf
+  FINDSTR /V sslPassword "%INSTALL_DIR%\etc\system\local\server.conf" > "%INSTALL_DIR%\etc\system\local\server.conf.tmp" && move /Y "%INSTALL_DIR%\etc\system\local\server.conf.tmp" "%INSTALL_DIR%\etc\system\local\server.conf"
 
   (
     ECHO %SPLUNK_SECRET%
