@@ -17,6 +17,9 @@ SET MSIFILE=###FILENAME OF SPLUNK UF MSI###
 REM Install dir, defaults to C:\Program Files\SplunkUniversalForwarder
 SET INSTALL_DIR=C:\Program Files\SplunkUniversalForwarder
 
+REM Try to uninstall existing Universal Forwarder if set to true (case sensitive!)
+SET UNINSTALL_EXISTING_UF=true
+
 REM Username for admin user
 SET USERNAME=admin
 REM Hashed password for admin user. Can be copied from etc/passwd on an existing Splunk instance. The splunk.secret file does NOT matter for this. Requires Splunk >= 7.1
@@ -85,8 +88,25 @@ IF EXIST %MSIFILE% (
   EXIT /B %ERRORLEVEL%
 )
 
+IF "%CREATE_TLS_SETTINGS%" == "true" (
+  REM Trying to stop and uninstall existing Universal Forwarder
+
+  ECHO Trying to stop an existing Universal Forwarder service
+  net stop "SplunkForwarder Service"
+
+  IF %ERRORLEVEL% EQU 0 (
+    ECHO Stopped Splunk Universal Forwarder service.
+  ) ELSE (
+    ECHO Failed to stop Splunk Universal Forwarder service.
+  )
+
+  ECHO Trying to uninstall an existing Universal Forwarder service
+  wmic product where name="UniversalForwarder" call uninstall
+)
+
 REM For parameter explanation, see http://docs.splunk.com/Documentation/Forwarder/latest/Forwarder/InstallaWindowsuniversalforwarderfromthecommandline
 
+ECHO Installing Splunk Universal Forwarder
 msiexec.exe /i %MSIFILE% AGREETOLICENSE="Yes" INSTALLDIR="%INSTALL_DIR%" LAUNCHSPLUNK=0 SERVICESTARTTYPE=auto INSTALL_SHORTCUT=0 /quiet /L*v logfile.txt
 
 IF %ERRORLEVEL% EQU 0 (
