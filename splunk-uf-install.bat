@@ -73,7 +73,7 @@ IF %ERRORLEVEL% EQU 0 (
   ECHO ##########################################################
   ECHO.
   PAUSE
-  EXIT /B 1
+  EXIT /B %ERRORLEVEL%
 )
 
 IF EXIST %MSIFILE% (
@@ -82,7 +82,7 @@ IF EXIST %MSIFILE% (
   ECHO Splunk Universal Forwarder MSI file does not exist!
   ECHO Exiting now, make sure %MSIFILE% exists or change variable MSIFILE in script.
   PAUSE
-  REM EXIT /B 1
+  EXIT /B %ERRORLEVEL%
 )
 
 REM For parameter explanation, see http://docs.splunk.com/Documentation/Forwarder/latest/Forwarder/InstallaWindowsuniversalforwarderfromthecommandline
@@ -95,7 +95,7 @@ IF %ERRORLEVEL% EQU 0 (
   ECHO Splunk Universal Forwarder installation FAILED.
   ECHO Exiting now, check logfile.txt.
   PAUSE
-  EXIT /B 1
+  EXIT /B %ERRORLEVEL%
 )
 
 REM Creates user-seed.conf which Splunk uses on first startup to set the password for the admin user
@@ -114,7 +114,7 @@ IF %ERRORLEVEL% EQU 0 (
   ECHO FAILED to create  %INSTALL_DIR%\etc\system\local\user-seed.conf
   ECHO Exiting now, check permissions.
   PAUSE
-  EXIT /B 1
+  EXIT /B %ERRORLEVEL%
 )
 
 REM Creates directory for the deploymentclient.conf
@@ -128,7 +128,7 @@ IF %ERRORLEVEL% EQU 0 (
   ECHO FAILED to create directory %INSTALL_DIR%\etc\apps\%DS_APPNAME%\default
   ECHO Exiting now, check permissions.
   PAUSE
-  EXIT /B 1
+  EXIT /B %ERRORLEVEL%
 )
 
 REM Creates deploymentclient.conf and fills in the IP/hostname and port of the deployment server
@@ -144,7 +144,7 @@ IF %ERRORLEVEL% EQU 0 (
   ECHO FAILED to create directory %INSTALL_DIR%\etc\apps\%DS_APPNAME%\default\deploymentclient.conf
   ECHO Exiting now, check permissions.
   PAUSE
-  EXIT /B 1
+  EXIT /B %ERRORLEVEL%
 )
 
 REM Creates server.conf and fills in the pass4SymmKey used to authenticate against the deployment server
@@ -160,7 +160,7 @@ IF %ERRORLEVEL% EQU 0 (
   ECHO FAILED to create directory %INSTALL_DIR%\etc\apps\%DS_APPNAME%\default\server.conf
   ECHO Exiting now, check permissions.
   PAUSE
-  EXIT /B 1
+  EXIT /B %ERRORLEVEL%
 )
 
 REM Only do the next steps if CREATE_TLS_SETTINGS is set to true
@@ -178,7 +178,7 @@ IF "%CREATE_TLS_SETTINGS%" == "true" (
     ECHO FAILED to create directory %INSTALL_DIR%\etc\apps\%TLS_APPNAME%\default
     ECHO Exiting now, check permissions.
     PAUSE
-    EXIT /B 1
+    EXIT /B %ERRORLEVEL%
   )
 
   REM Creates server.conf and fills in the certificate paths, DS Certificate CN and DS Pass4SymmKey
@@ -198,7 +198,7 @@ IF "%CREATE_TLS_SETTINGS%" == "true" (
     ECHO FAILED to create directory %INSTALL_DIR%\etc\apps\%TLS_APPNAME%\default\server.conf
     ECHO Exiting now, check permissions.
     PAUSE
-    EXIT /B 1
+    EXIT /B %ERRORLEVEL%
   )
 
   REM Creates folder to put certificate files and private key into
@@ -211,7 +211,7 @@ IF "%CREATE_TLS_SETTINGS%" == "true" (
     ECHO FAILED to create directory %INSTALL_DIR%\etc\auth\%CERT_FOLDER%
     ECHO Exiting now, check permissions.
     PAUSE
-    EXIT /B 1
+    EXIT /B %ERRORLEVEL%
   )
 
   REM This copies the Root CA Cert(s) file and the Server Cert+Key+Chain file to the right location
@@ -224,7 +224,7 @@ IF "%CREATE_TLS_SETTINGS%" == "true" (
     ECHO FAILED to copy certificale files to directory %INSTALL_DIR%\etc\auth\%CERT_FOLDER%
     ECHO Exiting now, check permissions.
     PAUSE
-    EXIT /B 1
+    EXIT /B %ERRORLEVEL%
   )
 
 )
@@ -250,7 +250,7 @@ IF "%CREATE_SPLUNK_SECRET%" == "true" (
     ECHO FAILED to create directory %INSTALL_DIR%\etc\auth\splunk.secret
     ECHO Exiting now, check permissions.
     PAUSE
-    EXIT /B 1
+    EXIT /B %ERRORLEVEL%
   )
 
 )
@@ -265,5 +265,5 @@ IF %ERRORLEVEL% EQU 0 (
   ECHO FAILED to start Splunk Universal Forwarder service
   ECHO Exiting now, please set Windows on fire.
   PAUSE
-  EXIT /B 1
+  EXIT /B %ERRORLEVEL%
 )
