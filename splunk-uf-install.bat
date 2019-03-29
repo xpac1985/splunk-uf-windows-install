@@ -88,7 +88,7 @@ IF EXIST %MSIFILE% (
   EXIT /B %ERRORLEVEL%
 )
 
-IF "%CREATE_TLS_SETTINGS%" == "true" (
+IF "%UNINSTALL_EXISTING_UF%" == "true" (
   REM Trying to stop and uninstall existing Universal Forwarder
 
   ECHO Trying to stop an existing Universal Forwarder service
@@ -131,7 +131,7 @@ REM Splunk deletes this file after the first start
 IF %ERRORLEVEL% EQU 0 (
   ECHO Created file %INSTALL_DIR%\etc\system\local\user-seed.conf successfully
 ) ELSE (
-  ECHO FAILED to create  %INSTALL_DIR%\etc\system\local\user-seed.conf
+  ECHO FAILED to create %INSTALL_DIR%\etc\system\local\user-seed.conf
   ECHO Exiting now, check permissions.
   PAUSE
   EXIT /B %ERRORLEVEL%
@@ -161,7 +161,7 @@ REM Creates deploymentclient.conf and fills in the IP/hostname and port of the d
 IF %ERRORLEVEL% EQU 0 (
   ECHO Created file %INSTALL_DIR%\etc\apps\%DS_APPNAME%\default\deploymentclient.conf successfully
 ) ELSE (
-  ECHO FAILED to create directory %INSTALL_DIR%\etc\apps\%DS_APPNAME%\default\deploymentclient.conf
+  ECHO FAILED to create %INSTALL_DIR%\etc\apps\%DS_APPNAME%\default\deploymentclient.conf
   ECHO Exiting now, check permissions.
   PAUSE
   EXIT /B %ERRORLEVEL%
@@ -177,7 +177,7 @@ REM Creates server.conf and fills in the pass4SymmKey used to authenticate again
 IF %ERRORLEVEL% EQU 0 (
   ECHO Created file %INSTALL_DIR%\etc\apps\%DS_APPNAME%\default\server.conf successfully
 ) ELSE (
-  ECHO FAILED to create directory %INSTALL_DIR%\etc\apps\%DS_APPNAME%\default\server.conf
+  ECHO FAILED to create %INSTALL_DIR%\etc\apps\%DS_APPNAME%\default\server.conf
   ECHO Exiting now, check permissions.
   PAUSE
   EXIT /B %ERRORLEVEL%
@@ -215,7 +215,7 @@ IF "%CREATE_TLS_SETTINGS%" == "true" (
   IF %ERRORLEVEL% EQU 0 (
     ECHO Created file %INSTALL_DIR%\etc\apps\%TLS_APPNAME%\default\server.conf successfully
   ) ELSE (
-    ECHO FAILED to create directory %INSTALL_DIR%\etc\apps\%TLS_APPNAME%\default\server.conf
+    ECHO FAILED to create %INSTALL_DIR%\etc\apps\%TLS_APPNAME%\default\server.conf
     ECHO Exiting now, check permissions.
     PAUSE
     EXIT /B %ERRORLEVEL%
@@ -267,7 +267,7 @@ IF "%CREATE_SPLUNK_SECRET%" == "true" (
   IF %ERRORLEVEL% EQU 0 (
     ECHO Created file %INSTALL_DIR%\etc\auth\splunk.secret successfully
   ) ELSE (
-    ECHO FAILED to create directory %INSTALL_DIR%\etc\auth\splunk.secret
+    ECHO FAILED to create %INSTALL_DIR%\etc\auth\splunk.secret
     ECHO Exiting now, check permissions.
     PAUSE
     EXIT /B %ERRORLEVEL%
